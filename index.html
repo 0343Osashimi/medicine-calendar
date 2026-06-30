@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>日めくりお薬カレンダー作成</title>
+<style>
+  :root{
+    --teal:#5cabb8;
+    --red:#e6231e;
+    --yellow:#f6e500;
+    --green:#1ea54c;
+    --blue:#1565c0;
+  }
+  *{box-sizing:border-box;}
+  *{
+    -webkit-print-color-adjust:exact;
+    print-color-adjust:exact;
+    color-adjust:exact;
+  }
+  body{
+    font-family:"Yu Gothic","Hiragino Kaku Gothic ProN","Meiryo",sans-serif;
+    margin:0;
+    background:#eef3f4;
+    color:#222;
+  }
+  .controls{
+    max-width:680px;
+    margin:30px auto;
+    background:#fff;
+    border-radius:12px;
+    padding:28px 32px;
+    box-shadow:0 2px 10px rgba(0,0,0,0.08);
+  }
+  .controls h1{
+    font-size:1.4rem;
+    margin:0 0 20px;
+    color:var(--teal);
+    border-bottom:3px solid var(--teal);
+    padding-bottom:8px;
+  }
+  .field{
+    margin-bottom:18px;
+  }
+  .field label{
+    display:block;
+    font-weight:bold;
+    margin-bottom:6px;
+    font-size:0.95rem;
+  }
+  .field input{
+    width:100%;
+    padding:10px 12px;
+    font-size:1rem;
+    border:1px solid #ccc;
+    border-radius:6px;
+  }
+  .field small{
+    color:#777;
+    display:block;
+    margin-top:4px;
+  }
+  .btnrow{
+    display:flex;
+    gap:12px;
+    margin-top:24px;
+  }
+  button{
+    flex:1;
+    padding:12px;
+    font-size:1rem;
+    font-weight:bold;
+    border:none;
+    border-radius:8px;
+    cursor:pointer;
+  }
+  #generateBtn{
+    background:var(--teal);
+    color:#fff;
+  }
+  #printBtn{
+    background:#444;
+    color:#fff;
+  }
+  #generateBtn:hover{background:#4a96a2;}
+  #printBtn:hover{background:#222;}
+
+  /* ---- Print sheets ---- */
+  #sheets{
+    max-width:900px;
+    margin:0 auto 60px;
+  }
+  .page{
+    background:#fff;
+    width:210mm;
+    min-height:297mm;
+    margin:30px auto;
+    padding:10mm 12mm;
+    box-shadow:0 2px 10px rgba(0,0,0,0.15);
+  }
+  .day-block{
+    height:128mm;
+    padding:6mm 0;
+  }
+  .day-header{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    margin-bottom:8mm;
+  }
+  .name-line{
+    display:flex;
+    align-items:baseline;
+    gap:6px;
+    font-size:26px;
+    border-bottom:2.5px solid #222;
+    padding-bottom:4px;
+    min-width:260px;
+  }
+  .name-circle{
+    display:inline-block;
+    width:30px;
+    height:30px;
+    border:2.5px solid #222;
+    border-radius:50%;
+  }
+  .name-text{
+    font-size:26px;
+  }
+  .name-suffix{
+    font-size:26px;
+    margin-left:14px;
+  }
+  .date-block{
+    display:flex;
+    align-items:flex-end;
+    font-size:60px;
+    line-height:1;
+    position:relative;
+  }
+  .date-month{
+    font-weight:bold;
+  }
+  .slash{
+    display:inline-block;
+    width:30px;
+    height:60px;
+    margin:0 2px;
+    vertical-align:bottom;
+  }
+  .slash svg{
+    width:100%;
+    height:100%;
+    display:block;
+  }
+  .date-day{
+    font-weight:bold;
+  }
+  .date-week{
+    font-size:42px;
+    margin-left:10px;
+  }
+  table.med-table{
+    width:100%;
+    border-collapse:collapse;
+    table-layout:fixed;
+  }
+  table.med-table th{
+    color:#fff;
+    font-size:18px;
+    padding:8px 0;
+    border:1px solid #888;
+  }
+  table.med-table th.h-asa{background:var(--red);}
+  table.med-table th.h-hiru{background:var(--yellow);color:#333;}
+  table.med-table th.h-yuu{background:var(--green);}
+  table.med-table th.h-neru{background:var(--blue);}
+  table.med-table td{
+    border:1px solid #888;
+    height:75mm;
+    vertical-align:top;
+  }
+  .divider{
+    border:none;
+    border-top:1px dashed #bbb;
+    margin:0;
+  }
+
+  @media print{
+    body{background:#fff;}
+    .controls{display:none;}
+    .page{
+      box-shadow:none;
+      margin:0;
+      page-break-after:always;
+      width:auto;
+      min-height:auto;
+    }
+    .page:last-child{page-break-after:auto;}
+    @page{
+      size:A4;
+      margin:8mm 10mm;
+    }
+  }
+</style>
+</head>
+<body>
+
+<div class="controls">
+  <h1>日めくりお薬カレンダー作成</h1>
+
+  <div class="field">
+    <label for="patientName">氏名</label>
+    <input type="text" id="patientName" placeholder="例：山田 太郎" value="">
+    <small>未入力の場合は「○○ ○○」のままになります</small>
+  </div>
+
+  <div class="field">
+    <label for="startDate">カレンダー開始日</label>
+    <input type="date" id="startDate">
+  </div>
+
+  <div class="field">
+    <label for="numDays">作成日数</label>
+    <input type="number" id="numDays" min="1" max="60" value="14">
+    <small>A4用紙1枚に2日分印刷されます</small>
+  </div>
+
+  <div class="btnrow">
+    <button id="generateBtn">作成する</button>
+    <button id="printBtn">印刷する</button>
+  </div>
+</div>
+
+<div id="sheets"></div>
+
+<script>
+const weekJ = ["日","月","火","水","木","金","土"];
+
+function nameMarkup(name){
+  const trimmed = (name || "").trim();
+  if(trimmed){
+    return `<span class="name-text">${escapeHtml(trimmed)}</span><span class="name-suffix">様</span>`;
+  }
+  return `<span class="name-circle"></span><span class="name-circle"></span>
+          <span style="width:14px;"></span>
+          <span class="name-circle"></span><span class="name-circle"></span>
+          <span class="name-suffix">様</span>`;
+}
+
+function escapeHtml(s){
+  return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+
+function dayBlockHtml(date, name){
+  const m = date.getMonth()+1;
+  const d = date.getDate();
+  const w = weekJ[date.getDay()];
+  return `
+  <div class="day-block">
+    <div class="day-header">
+      <div class="name-line">${nameMarkup(name)}</div>
+      <div class="date-block">
+        <span class="date-month">${m}</span>
+        <span class="slash"><svg viewBox="0 0 30 60" preserveAspectRatio="none"><line x1="4" y1="60" x2="26" y2="0" stroke="#222" stroke-width="3"/></svg></span>
+        <span class="date-day">${d}</span>
+        <span class="date-week">（${w}）</span>
+      </div>
+    </div>
+    <table class="med-table">
+      <thead>
+        <tr>
+          <th class="h-asa">あさ</th>
+          <th class="h-hiru">ひる</th>
+          <th class="h-yuu">ゆう</th>
+          <th class="h-neru">ねる前</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td></td><td></td><td></td><td></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>`;
+}
+
+function generate(){
+  const nameVal = document.getElementById('patientName').value;
+  const startVal = document.getElementById('startDate').value;
+  const numDaysVal = parseInt(document.getElementById('numDays').value, 10);
+
+  let startDate;
+  if(startVal){
+    const parts = startVal.split('-').map(Number);
+    startDate = new Date(parts[0], parts[1]-1, parts[2]);
+  } else {
+    startDate = new Date();
+  }
+  const numDays = (isNaN(numDaysVal) || numDaysVal < 1) ? 1 : Math.min(numDaysVal, 60);
+
+  const sheetsEl = document.getElementById('sheets');
+  sheetsEl.innerHTML = "";
+
+  let pageHtml = "";
+  let dayCount = 0;
+
+  for(let i=0; i<numDays; i++){
+    const d = new Date(startDate);
+    d.setDate(d.getDate()+i);
+
+    pageHtml += dayBlockHtml(d, nameVal);
+    dayCount++;
+
+    if(dayCount % 2 === 1 && i < numDays - 1){
+      pageHtml += `<hr class="divider">`;
+    }
+
+    if(dayCount % 2 === 0 || i === numDays - 1){
+      const page = document.createElement('div');
+      page.className = 'page';
+      page.innerHTML = pageHtml;
+      sheetsEl.appendChild(page);
+      pageHtml = "";
+    }
+  }
+}
+
+document.getElementById('generateBtn').addEventListener('click', generate);
+document.getElementById('printBtn').addEventListener('click', () => {
+  if(document.getElementById('sheets').children.length === 0){
+    generate();
+  }
+  window.print();
+});
+
+// 初期表示：今日の日付をセット & 自動生成
+(function init(){
+  const today = new Date();
+  const yyyy = today.getFullYear();
+  const mm = String(today.getMonth()+1).padStart(2,'0');
+  const dd = String(today.getDate()).padStart(2,'0');
+  document.getElementById('startDate').value = `${yyyy}-${mm}-${dd}`;
+  generate();
+})();
+</script>
+
+</body>
+</html>
