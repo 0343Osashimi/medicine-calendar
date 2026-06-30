@@ -330,6 +330,10 @@ function generate(){
     }
 
     if(dayCount % 2 === 0 || i === numDays - 1){
+      if(dayCount % 2 === 1){
+        // 奇数で終わる場合、下半分を空のプレースホルダーで埋めて上半分だけ使用させる
+        pageHtml += `<div class="day-block" style="visibility:hidden;"></div>`;
+      }
       const page = document.createElement('div');
       page.className = 'page';
       page.innerHTML = pageHtml;
